@@ -3,7 +3,7 @@ import json
 
 def test_ollama():
     """Test if Ollama is working properly"""
-    print("🔍 Testing Ollama connection...")
+    print("Testing Ollama connection...")
     
     try:
         # Check if Ollama is running
@@ -11,7 +11,7 @@ def test_ollama():
         if response.status_code == 200:
             print("✅ Ollama is running!")
             models = response.json().get('models', [])
-            print("\n📋 Available models:")
+            print("\n Available models:")
             for model in models:
                 print(f"  - {model['name']} ({model['size']} bytes)")
             
@@ -31,7 +31,7 @@ def test_ollama():
             
             if response.status_code == 200:
                 result = response.json()
-                print("\n🧪 Testing model response:")
+                print("\n Testing model response:")
                 print(f"Response: {result.get('response', '')[:50]}...")
                 print("✅ Model is working correctly!")
                 return True
