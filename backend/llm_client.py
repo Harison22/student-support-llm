@@ -3,7 +3,7 @@ import requests
 from typing import Dict, Any
 from datetime import datetime
 import logging
-from config import Config
+from backend.config import Config
 
 logger = logging.getLogger(__name__)
 

@@ -6,8 +6,8 @@ from datetime import datetime
 import logging
 import json
 
-from config import Config
-from llm_client import LLMClient
+from backend.config import Config
+from backend.llm_client import LLMClient
 
 import os
 import logging
