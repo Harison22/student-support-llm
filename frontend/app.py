@@ -26,7 +26,7 @@ if st.button("Ask"):
                 )
 
                 if response.status_code == 200:
-                    answer = response.json()["answer"]
+                    answer = response.json()["response"]
                     st.success(answer)
                 else:
                     st.error(
