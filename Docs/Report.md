@@ -165,8 +165,7 @@ python backend/main.py
 streamlit run frontend/app.py
 ```
 
-📸 *Recommended visuals:* `T2.1.png` (dependency install) · `T2.3-1.png` (final readiness check)
-
+final readiness check
 ---
 
 ## 7. Testing & Quality Assurance
