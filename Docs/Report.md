@@ -60,7 +60,6 @@ Build an assistant that:
 | **Frontend** | `frontend/app.py` | Streamlit chat UI, posts to `/ask` |
 | **Test Suite** | `tests/` | 12 pytest cases covering endpoints & edge cases |
 
-<sub>*Add this file name if your RAG module is named differently.</sub>
 
 ### 3.2 Request Flow
 ![alt text](T3.1-2.png)
