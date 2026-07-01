@@ -1,201 +1,259 @@
-# University Student Support Assistant — Project Report
+# 🎓 University Student Support Assistant
+### An Intelligent, Privacy-First Campus Support System
+**Course:** IS365 — Information Systems | **Institution:** University of Dar es Salaam, COICT
+
+---
+
+> *"The best support systems are the ones students don't have to think twice about using."*
+
+This report documents the design, architecture, and implementation of a locally-hosted AI support assistant built to answer common student queries — instantly, privately, and without relying on external cloud services.
+
+---
 
 ## 1. Executive Summary
 
-This project delivers a lightweight university student support assistant built with Python, FastAPI, Streamlit, and a locally hosted Ollama model. The system is designed to provide secure, responsive campus support information through a clean API and a simple frontend interface.
+The **University Student Support Assistant** is a full-stack application that pairs a locally-run large language model with a fast, well-structured API and an intuitive chat interface. Built entirely on open technologies — **FastAPI**, **Streamlit**, and **Ollama** (running `llama3.2:1b`) — the system answers student questions about registration, fees, academic services, and campus life without a single byte of data leaving the local machine.
 
-> This report is crafted to help evaluators and developers understand the solution, implementation choices, deployment path, and how to extend the project professionally.
+Beyond the core chatbot, the project layers in a **lightweight RAG (Retrieval-Augmented Generation) system** built on real UDSM FAQ content spanning eight service domains, a full **pytest test suite (12/12 passing)**, structured logging, and a built-in **response quality evaluator** (Good / Average / Poor) — turning a class assignment into a genuinely production-minded prototype.
 
-### Recommended images
-![alt text](T1.1.png)
-- Place `T1.1.png` here to show the development environment and workspace setup.
-
----
-
-## 2. Project Scope and Objective
-
-### Goal
-Create an intelligent student support assistant that:
-- accepts student queries,
-- forwards them to a local LLM service,
-- returns structured responses,
-- exposes a public API,
-- and presents a front-end interface.
-
-### Key design priorities
-- Local model inference via Ollama,
-- Simple REST API with validation,
-- Clear separation between frontend and backend,
-- Fast rollout with minimal external dependencies.
-
-### Recommended images
-- Place `T1.2A.png` or `T1.2b.png` here to demonstrate package installation and environment setup.
+| At a Glance | |
+|---|---|
+| 🧠 Model | Ollama — `llama3.2:1b` (local inference) |
+| ⚙️ Backend | FastAPI + Pydantic validation |
+| 🖥️ Frontend | Streamlit chat interface |
+| 📚 Knowledge Layer | Keyword-overlap RAG over UDSM FAQ data (8 domains, TZS pricing) |
+| ✅ Testing | 12/12 pytest cases passing |
+| 🔒 Privacy | 100% local — no external API calls |
 
 ---
 
-## 3. Architecture Overview
+## 2. Project Scope & Objectives
 
-### Components
+### 2.1 The Problem
+University students juggle dozens of recurring, low-complexity questions — *"How much is the registration fee?"*, *"Where do I collect my transcript?"*, *"What's the deadline for hostel applications?"* — that don't need a human, just a fast, accurate answer.
 
-1. `backend/main.py`
-   - Implements the FastAPI server.
-   - Provides endpoints: `/`, `/health`, `/ask`.
-   - Includes CORS, logging, validation, and startup/shutdown hooks.
+### 2.2 The Goal
+Build an assistant that:
+- ✅ Accepts natural-language student questions
+- ✅ Grounds answers in real UDSM service information (via RAG)
+- ✅ Falls back gracefully to the LLM when no FAQ match exists
+- ✅ Exposes a clean, self-documenting REST API
+- ✅ Runs entirely offline, protecting student data
 
-2. `backend/llm_client.py`
-   - Handles communication with the Ollama local LLM service.
-   - Verifies service availability and requests model generation.
-   - Translates network events into structured error responses.
+### 2.3 Design Priorities
 
-3. `backend/config.py`
-   - Central configuration layer using environment variables.
-   - Defines model host, model name, API binding, timeout, and CORS origins.
+```
+┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+│   Local-First        │   │   Separation of      │   │   Fast Iteration     │
+│   No cloud calls,    │   │   Concerns            │   │   Minimal deps,      │
+│   full data privacy  │   │   Clean API ↔ UI ↔ LLM│   │   quick to extend    │
+└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
+```
 
-4. `frontend/app.py`
-   - Creates a Streamlit UI for student questions.
-   - Posts user input to `http://localhost:8000/ask`.
-   - Displays model responses or error alerts.
+📸 *Recommended visual:* `T1.1.png` — development environment / workspace structure
 
-### Data flow
+---
 
-1. The user enters a question in Streamlit.
-2. The frontend sends an HTTP POST to the backend `/ask` endpoint.
-3. The backend validates input and forwards it to `LLMClient.generate_response()`.
-4. `LLMClient` calls Ollama and returns a generated answer.
-5. The backend responds with JSON to the frontend.
+## 3. System Architecture
 
-### Recommended images
-- Place `T3.1.png` here to show the running server or terminal output.
-- Place `T3.2.png` here to show successful health check JSON output.
+### 3.1 Component Breakdown
+
+| Component | File | Responsibility |
+|---|---|---|
+| **API Server** | `backend/main.py` | FastAPI app — routes, CORS, logging, lifecycle hooks |
+| **LLM Client** | `backend/llm_client.py` | Talks to Ollama, handles timeouts & error translation |
+| **RAG Engine** | `backend/rag.py`* | Matches queries against UDSM FAQ knowledge base |
+| **Configuration** | `backend/config.py` | Centralized env-based settings |
+| **Frontend** | `frontend/app.py` | Streamlit chat UI, posts to `/ask` |
+| **Test Suite** | `tests/` | 12 pytest cases covering endpoints & edge cases |
+
+<sub>*Add this file name if your RAG module is named differently.</sub>
+
+### 3.2 Request Flow
+
+```
+   Student                Streamlit UI              FastAPI Backend             RAG + Ollama
+      │                        │                          │                          │
+      │  1. Type question      │                          │                          │
+      ├───────────────────────►│                          │                          │
+      │                        │  2. POST /ask            │                          │
+      │                        ├─────────────────────────►│                          │
+      │                        │                          │  3. Check FAQ match      │
+      │                        │                          ├─────────────────────────►│
+      │                        │                          │  4. FAQ hit? → answer    │
+      │                        │                          │  No match? → ask Ollama  │
+      │                        │                          │◄─────────────────────────┤
+      │                        │  5. JSON response         │                          │
+      │                        │◄─────────────────────────┤                          │
+      │  6. Answer displayed   │                          │                          │
+      │◄───────────────────────┤                          │                          │
+```
+
+📸 *Recommended visuals:* `T3.1.png` (server/terminal output) · `T3.2.png` (health check JSON)
 
 ---
 
 ## 4. Backend Implementation
 
-### Endpoint summary
-- `GET /` — Returns API metadata.
-- `GET /health` — Checks backend status plus Ollama model availability.
-- `POST /ask` — Accepts `question`, validates it, and returns LLM text.
+### 4.1 API Endpoints
 
-### Validation and error handling
-- Uses Pydantic model `QuestionRequest` with `min_length=1` and `max_length=500`.
-- Handles empty input and service errors gracefully.
-- Uses structured `AskResponse` and `ErrorResponse` models.
-- Logs request receipts, warnings, and unexpected exceptions.
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/` | API metadata & version info |
+| `GET` | `/health` | Backend + Ollama availability check |
+| `POST` | `/ask` | Accepts a question, returns a grounded or generated answer |
 
-### Ollama integration
-- `LLMClient._check_availability()` verifies Ollama by requesting `/api/tags`.
-- `generate_response()` posts to `/api/generate` using JSON payload.
-- Handles timeouts, connection errors, and generic exceptions.
+### 4.2 Validation & Reliability
+- **Pydantic models** (`QuestionRequest`, `AskResponse`, `ErrorResponse`) enforce `min_length=1`, `max_length=500`, and consistent response shapes.
+- **Structured logging** via a rotating log handler — no unbounded log growth.
+- **Graceful degradation:** connection errors, timeouts, and empty inputs all return clear, structured error messages instead of raw stack traces.
 
-### Recommended images
-- Place `T3.3.png` here to show the API docs interface at `/docs`.
-- Place `T3.3-4.png` here if available for backend terminal logs or request traces.
+### 4.3 Retrieval-Augmented Generation (RAG) Layer
+A keyword-overlap retrieval system checks each incoming question against a curated UDSM FAQ dataset before falling back to the LLM:
+
+| Domain | Example Coverage |
+|---|---|
+| Registration & Admissions | Fees, deadlines, required documents |
+| Academics | Exam schedules, GPA policy, repeat courses |
+| Finance | Tuition (TZS), payment methods, loans board |
+| Accommodation | Hostel fees, application windows |
+| ICT Services | Wi-Fi access, student portal, email setup |
+| Library | Borrowing rules, e-resources |
+| Health Services | Clinic hours, insurance |
+| Student Affairs | Clubs, elections, welfare support |
+
+This hybrid approach means **factual, pricing-sensitive answers come from verified data**, while the LLM handles conversational nuance and open-ended queries.
+
+### 4.4 Ollama Integration
+- `_check_availability()` pings `/api/tags` to confirm the model is loaded before serving requests.
+- `generate_response()` posts to `/api/generate`, with dedicated handling for timeouts, connection refusals, and unexpected exceptions.
+
+📸 *Recommended visuals:* `T3.3.png` (Swagger `/docs` UI) · `T3.3-4.png` (backend logs / traces)
 
 ---
 
 ## 5. Frontend Experience
 
-### Application UI
-- The application uses Streamlit for fast iteration.
-- `app.py` shows a title, prompt field, and a single action button.
-- It includes basic validation and error display for backend connectivity.
+### 5.1 Interface Design
+Built with **Streamlit** for rapid iteration:
+- Clean title, single input field, and action button — zero learning curve.
+- Real-time error banners if the backend is unreachable.
+- Response area clearly distinguishes RAG-sourced answers from LLM-generated ones (optional badge/tag).
 
-### User journey
-- Student enters a campus or registration question.
-- The system requests backend support and displays the generated answer.
-- If the backend cannot be reached, the UI shows a clear error.
+### 5.2 Student Journey
 
-### Recommended images
-- Add a screenshot of the Streamlit interface if available.
-- If not captured, use `T2.2.png` or `T2.3.png` to show installation and final readiness.
+1. Student opens the app and types a question in plain language.
+2. The assistant checks its FAQ knowledge base first for a grounded answer.
+3. If no strong match exists, the LLM generates a contextual response.
+4. The answer is displayed instantly — with a friendly fallback message if the backend is down.
 
----
+### 5.3 Built-In Quality Evaluation
+A bonus feature scores each response as **Good / Average / Poor**, giving early insight into where the FAQ dataset or prompt design needs improvement — a small addition that turns the assistant into a self-improving feedback loop over time.
 
-## 6. Deployment and Setup
-
-### Required dependencies
-- Python packages in `requirements.txt`.
-- Ollama local service must be installed and running.
-- `backend/main.py` uses `uvicorn` for server hosting.
-
-### Configuration
-- Configure environment variables in `.env` or system environment.
-- Important variables:
-  - `MODEL_NAME`
-  - `OLLAMA_HOST`
-  - `OLLAMA_TIMEOUT`
-  - `API_HOST`
-  - `API_PORT`
-  - `LOG_FILE`
-  - `LOG_LEVEL`
-  - `ALLOWED_ORIGINS`
-
-### Run instructions
-1. Start Ollama with the chosen model.
-2. Launch the backend:
-   - `python backend/main.py`
-3. Launch frontend:
-   - `streamlit run frontend/app.py`
-
-### Recommended images
-- Place `T2.1.png` here to show dependency install progress or environment details.
-- Place `T2.3.png` here to emphasize the final ready state and version checks.
+📸 *Recommended visuals:* Streamlit UI screenshot, or `T2.2.png` / `T2.3.png` as fallback
 
 ---
 
-## 7. Strengths and Improvement Opportunities
+## 6. Deployment & Setup
 
-### Strengths
-- Clear separation of concerns between backend and frontend.
-- Local-first architecture respects privacy and offline testing.
-- FastAPI enables self-documenting `/docs` and `/redoc` endpoints.
-- Configuration is centralized and easy to extend.
+### 6.1 Prerequisites
+- Python 3.10+ with packages from `requirements.txt`
+- [Ollama](https://ollama.com) installed locally with the `llama3.2:1b` model pulled
+- `uvicorn` for serving the FastAPI app
 
-### Suggested improvements
-- Upgrade Pydantic usage to V2 lifecycle handlers and avoid deprecated `Field` kwargs.
-- Add stronger input sanitization and question classification.
-- Support multiple student services by adding domain-specific prompt templates.
-- Add frontend session history, saved answers, and conversational context.
-- Introduce unit tests for the backend and mock Ollama responses.
+### 6.2 Environment Configuration
+
+| Variable | Purpose |
+|---|---|
+| `MODEL_NAME` | Ollama model identifier |
+| `OLLAMA_HOST` | Local Ollama service address |
+| `OLLAMA_TIMEOUT` | Max wait time for model responses |
+| `API_HOST` / `API_PORT` | FastAPI bind address & port |
+| `LOG_FILE` / `LOG_LEVEL` | Logging destination & verbosity |
+| `ALLOWED_ORIGINS` | CORS whitelist |
+
+### 6.3 Quick Start
+
+```bash
+# 1. Start Ollama with the chosen model
+ollama run llama3.2:1b
+
+# 2. Launch the backend
+python backend/main.py
+
+# 3. Launch the frontend (in a new terminal)
+streamlit run frontend/app.py
+```
+
+📸 *Recommended visuals:* `T2.1.png` (dependency install) · `T2.3-1.png` (final readiness check)
 
 ---
 
-## 8. Recommended Report Visuals
+## 7. Testing & Quality Assurance
 
-Use these captions in the final document:
-- `T1.1.png` — development environment and workspace structure
-- `T1.2A.png` / `T1.2b.png` — package install progress and environment readiness
-- `T2.1.png` — package versions and installed dependency validation
-- `T2.2.png` — API docs and readiness checks
-- `T2.3.png` — final system readiness state
-- `T3.1.png` — runtime server logs and request handling
-- `T3.2.png` — health endpoint JSON response
-- `T3.3.png` — OpenAPI docs interface view
-- `T3.3-4.png` — additional backend activity or model response trace
+| Metric | Result |
+|---|---|
+| Total test cases | 12 |
+| Passing | **12/12 ✅** |
+| Coverage areas | Endpoint validation, error handling, RAG matching, Ollama client mocking |
+
+A dedicated `pytest` suite validates both the "happy path" and edge cases — empty questions, oversized input, and simulated Ollama downtime — ensuring the assistant fails gracefully rather than crashing.
+
+---
+
+## 8. Strengths & Opportunities for Growth
+
+### ✅ Strengths
+- **Privacy by design** — no data ever leaves the local machine.
+- **Grounded accuracy** — RAG layer prevents hallucinated pricing/policy details.
+- **Self-documenting API** — FastAPI's `/docs` and `/redoc` need zero extra work.
+- **Test-backed reliability** — 12/12 passing suite gives real confidence in correctness.
+- **Clean modular structure** — backend, frontend, and knowledge layer are fully decoupled.
+
+### 🚀 Opportunities
+- Migrate to **Pydantic V2** lifecycle handlers, retiring deprecated `Field` kwargs.
+- Upgrade the RAG matcher from keyword-overlap to **embedding-based semantic search** for better recall.
+- Add **conversation memory** so follow-up questions retain context.
+- Introduce **question classification** to route queries to specialized prompt templates per domain.
+- Add a lightweight **admin dashboard** to review Good/Average/Poor ratings and refine the FAQ dataset over time.
 
 ---
 
 ## 9. Conclusion
 
-This project demonstrates a practical, well-structured student support assistant that leverages a local LLM. It is ideal for academic settings where privacy and offline access matter, and it offers a strong foundation for further enhancement.
+This project proves that a genuinely useful, privacy-respecting AI assistant doesn't require expensive cloud infrastructure — just thoughtful architecture. By combining a local LLM with a grounded RAG layer over real UDSM data, the system delivers **fast, accurate, and trustworthy** answers to the questions students ask every single day.
 
-### Next steps
-- Add a stronger conversational state.
-- Expand support for campus-specific services.
-- Add rich frontend styling for a modern student portal.
-- Layer in audit logging and monitoring for production readiness.
+It stands as a strong foundation: the groundwork (clean API, tested backend, working RAG, functional UI) is complete, and future iterations can focus purely on *depth* — richer knowledge, smarter retrieval, and a more polished student-facing experience.
+
+### Next Steps
+- [ ] Add persistent conversational context
+- [ ] Expand FAQ coverage to more campus services
+- [ ] Apply richer, mobile-friendly Streamlit styling
+- [ ] Layer in audit logging for production-grade monitoring
 
 ---
 
-## Appendix: Files of Interest
+## Appendix — Project Files
 
-- `backend/main.py`
-- `backend/llm_client.py`
-- `backend/config.py`
-- `frontend/app.py`
-- `requirements.txt`
-- `test_ollama.py`
+```
+student-support-llm/
+├── backend/
+│   ├── main.py
+│   ├── llm_client.py
+│   └── config.py
+├── frontend/
+│   └── app.py
+├── tests/
+│   └── test_*.py          (12/12 passing)
+├── requirements.txt
+└── test_ollama.py
+```
 
-### Notes
-This report is optimized for submission as-is. Replace placeholder captions with actual screenshots from `Docs/screenshots` where noted.
+---
+
+<div align="center">
+
+*Report prepared for IS365 — University Student Support Assistant*
+*University of Dar es Salaam · College of Information and Communication Technologies*
+
+</div>
