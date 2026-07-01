@@ -42,17 +42,10 @@ Build an assistant that:
 
 ### 2.3 Design Priorities
 
-```
-┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
-│   Local-First        │   │   Separation of      │   │   Fast Iteration     │
-│   No cloud calls,    │   │   Concerns            │   │   Minimal deps,      │
-│   full data privacy  │   │   Clean API ↔ UI ↔ LLM│   │   quick to extend    │
-└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
-```
 
-📸 *Recommended visual:* `T1.1.png` — development environment / workspace structure
+![alt text](T1.1-1.png)
+ development environment / workspace structure
 
----
 
 ## 3. System Architecture
 
@@ -70,28 +63,12 @@ Build an assistant that:
 <sub>*Add this file name if your RAG module is named differently.</sub>
 
 ### 3.2 Request Flow
+![alt text](T3.1-2.png)
+server/terminal output· 
 
-```
-   Student                Streamlit UI              FastAPI Backend             RAG + Ollama
-      │                        │                          │                          │
-      │  1. Type question      │                          │                          │
-      ├───────────────────────►│                          │                          │
-      │                        │  2. POST /ask            │                          │
-      │                        ├─────────────────────────►│                          │
-      │                        │                          │  3. Check FAQ match      │
-      │                        │                          ├─────────────────────────►│
-      │                        │                          │  4. FAQ hit? → answer    │
-      │                        │                          │  No match? → ask Ollama  │
-      │                        │                          │◄─────────────────────────┤
-      │                        │  5. JSON response         │                          │
-      │                        │◄─────────────────────────┤                          │
-      │  6. Answer displayed   │                          │                          │
-      │◄───────────────────────┤                          │                          │
-```
+![alt text](T3.2-1.png)
+ (health check JSON)
 
-📸 *Recommended visuals:* `T3.1.png` (server/terminal output) · `T3.2.png` (health check JSON)
-
----
 
 ## 4. Backend Implementation
 
@@ -128,9 +105,10 @@ This hybrid approach means **factual, pricing-sensitive answers come from verifi
 - `_check_availability()` pings `/api/tags` to confirm the model is loaded before serving requests.
 - `generate_response()` posts to `/api/generate`, with dedicated handling for timeouts, connection refusals, and unexpected exceptions.
 
-📸 *Recommended visuals:* `T3.3.png` (Swagger `/docs` UI) · `T3.3-4.png` (backend logs / traces)
+![alt text](T3.3-1.png) (Swagger `/docs` UI).
 
----
+![alt text](T3.3-4-1.png)
+(backend logs / traces)
 
 ## 5. Frontend Experience
 
@@ -150,9 +128,11 @@ Built with **Streamlit** for rapid iteration:
 ### 5.3 Built-In Quality Evaluation
 A bonus feature scores each response as **Good / Average / Poor**, giving early insight into where the FAQ dataset or prompt design needs improvement — a small addition that turns the assistant into a self-improving feedback loop over time.
 
-📸 *Recommended visuals:* Streamlit UI screenshot, or `T2.2.png` / `T2.3.png` as fallback
+![alt text](T2.2-1.png)
+Streamlit UI / 
+![alt text](T2.3-2.png)
+ as fallback
 
----
 
 ## 6. Deployment & Setup
 
