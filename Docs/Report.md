@@ -133,14 +133,14 @@ Streamlit UI /
  as fallback
 
 
-## 6. Deployment & Setup
+### 5.4. Deployment & Setup
 
-### 6.1 Prerequisites
+### 5.5 Prerequisites
 - Python 3.10+ with packages from `requirements.txt`
 - [Ollama](https://ollama.com) installed locally with the `llama3.2:1b` model pulled
 - `uvicorn` for serving the FastAPI app
 
-### 6.2 Environment Configuration
+### 5.6 Environment Configuration
 
 | Variable | Purpose |
 |---|---|
@@ -151,7 +151,7 @@ Streamlit UI /
 | `LOG_FILE` / `LOG_LEVEL` | Logging destination & verbosity |
 | `ALLOWED_ORIGINS` | CORS whitelist |
 
-### 6.3 Quick Start
+### 5.7 Quick Start
 
 ```bash
 # 1. Start Ollama with the chosen model
@@ -165,51 +165,132 @@ streamlit run frontend/app.py
 ```
 
 final readiness check
----
-
-## 7. Testing & Quality Assurance
-
-| Metric | Result |
-|---|---|
-| Total test cases | 12 |
-| Passing | **12/12 ✅** |
-| Coverage areas | Endpoint validation, error handling, RAG matching, Ollama client mocking |
-
-A dedicated `pytest` suite validates both the "happy path" and edge cases — empty questions, oversized input, and simulated Ollama downtime — ensuring the assistant fails gracefully rather than crashing.
 
 ---
 
-## 8. Strengths & Opportunities for Growth
+# 6. Testing and Results
 
-### ✅ Strengths
-- **Privacy by design** — no data ever leaves the local machine.
-- **Grounded accuracy** — RAG layer prevents hallucinated pricing/policy details.
-- **Self-documenting API** — FastAPI's `/docs` and `/redoc` need zero extra work.
-- **Test-backed reliability** — 12/12 passing suite gives real confidence in correctness.
-- **Clean modular structure** — backend, frontend, and knowledge layer are fully decoupled.
+## 6.1 API Testing
 
-### 🚀 Opportunities
-- Upgrade the RAG matcher from keyword-overlap to **embedding-based semantic search** for better recall.
-- Persist conversation memory beyond the current Streamlit browser session.
-- Persist Good/Average/Poor feedback in a small database so the admin dashboard survives backend restarts.
-- Expand the question classifier with confidence scores and more UDSM-specific service domains.
-- Add export tools for feedback review so the FAQ dataset can be refined over time.
+The backend API was tested using **Swagger UI** (`/docs`). All endpoints responded as expected.
+
+| Test | Expected Result | Status |
+|------|-----------------|--------|
+| `/health` | Returns backend and model status | ✅ Pass |
+| `/ask` (Valid question) | Returns AI response | ✅ Pass |
+| `/ask` (Empty question) | HTTP 422 validation error | ✅ Pass |
+| `/feedback` (Valid rating) | Feedback saved successfully | ✅ Pass |
+| `/feedback` (Invalid rating) | HTTP 422 validation error | ✅ Pass |
+
+**Figure 6.1:** Swagger UI API testing.
+
+![Swagger API Test](docs/screenshots/swagger-api-test.png)
+
+---
+
+## 6.2 Manual End-to-End Testing
+
+The complete system was tested by running the FastAPI backend, Ollama, and the Streamlit frontend.
+
+| Test Scenario | Expected Result | Status |
+|--------------|-----------------|--------|
+| Valid question | AI returns relevant answer | ✅ Pass |
+| Backend stopped | Frontend shows connection error | ✅ Pass |
+| Ollama stopped | Backend returns 503 (Model unavailable) | ✅ Pass |
+| Empty question | Frontend requests user input | ✅ Pass |
+| Slow response | Loading spinner displayed | ✅ Pass |
+
+**Figure 6.2:** Backend connection error.
+
+![Backend Error](docs/screenshots/backend-error.png)
+
+**Figure 6.3:** Model unavailable error.
+
+![Model Error](docs/screenshots/model-error.png)
+
+**Figure 6.4:** Empty question validation.
+
+![Empty Question](docs/screenshots/empty-question.png)
+
+**Figure 6.5:** Loading spinner during request.
+
+![Loading Spinner](docs/screenshots/loading-spinner.png)
+
+---
+
+## 6.3 Prompt Improvement
+
+**Original Prompt**
+
+```text
+Answer this university question: {question}
+```
+
+**Example Question**
+
+> What's the deadline to pay my tuition fees this semester?
+
+| Before | After |
+|--------|-------|
+| Model generated a specific deadline without evidence. | Model explains it does not know the official deadline and advises the student to contact the Finance Office. |
+
+The improved prompt reduces hallucinations and provides more reliable responses.
+
+---
+
+# 7. Challenges Encountered
+
+- Initial model loading caused slower first responses.
+- Distinguishing backend failures from model failures required custom exception handling.
+- The small Llama 3.2 1B model sometimes produced less accurate responses.
+- Backend and frontend configuration was synchronized using a shared `.env` file.
+## 8. Production Readiness Discussion
+
+This implementation is a deliberately scoped **prototype**, not a
+production system. Moving toward production would require, at minimum:
+
+- **Authentication and authorization** — restricting who can call the
+  API (e.g. API keys or institutional SSO), rather than the open CORS
+  policy used for local development.
+- **Rate limiting and abuse protection** — preventing a single user or
+  script from overwhelming the model server.
+- **Centralized, queryable logging/monitoring** — replacing the local
+  rotating log file with a log aggregation and alerting system (e.g.
+  Prometheus/Grafana, or a managed logging service) so the operations
+  team is notified of failures automatically rather than reading a file.
+- **Horizontal scalability** — running the model behind a load balancer
+  or using a GPU-backed inference server if request volume grows beyond
+  what a single CPU-served Ollama instance can handle.
+- **Data governance** — a clear policy on whether/how student questions
+  are retained, anonymized, or purged (see Section 9, reflection
+  question 9).
+- **CI/CD and containerization** — packaging the backend (and ideally the
+  whole stack) into Docker images with an automated test/deploy pipeline,
+  rather than manually run `uvicorn`/`streamlit` processes.
+- **Model evaluation pipeline** — systematic, repeatable evaluation of
+  answer quality (beyond informal manual testing) before any prompt or
+  model change ships.
 
 ---
 
 ## 9. Conclusion
 
-This project proves that a genuinely useful, privacy-respecting AI assistant doesn't require expensive cloud infrastructure — just thoughtful architecture. By combining a local LLM with a grounded RAG layer over real UDSM data, the system delivers **fast, accurate, and trustworthy** answers to the questions students ask every single day.
+This project successfully implements a complete, working pipeline for a
+self-hosted LLM application: a configured local development environment,
+a locally served language model, a typed and validated FastAPI backend,
+an interactive Streamlit frontend, structured logging, comprehensive
+error handling, an automated test suite, and a bonus response-evaluation
+feature. Every component in the assignment's required architecture
+diagram — frontend, backend, local LLM, configuration, logging, error
+handling, and testing — is present, functional, and documented.
 
-It stands as a strong foundation: the groundwork (clean API, tested backend, working RAG, functional UI) is complete, and future iterations can focus purely on *depth* — richer knowledge, smarter retrieval, and a more polished student-facing experience.
-
-### Next Steps
-- [x] Add session-based conversational context
-- [x] Add Good/Average/Poor feedback capture
-- [ ] Expand FAQ coverage to more campus services
-- [ ] Add persistent storage for conversations and feedback
-- [ ] Apply richer, mobile-friendly Streamlit styling
-- [ ] Layer in audit logging for production-grade monitoring
+Beyond completing the assignment's checklist, the project demonstrates
+the central lesson it was designed to teach: building an LLM-powered
+application is overwhelmingly an exercise in **software engineering**
+around the model — request validation, failure isolation, observability,
+and clear documentation — rather than in the model itself. The model is a
+single, swappable component in a much larger, carefully engineered
+system.
 
 ---
 
