@@ -191,11 +191,11 @@ A dedicated `pytest` suite validates both the "happy path" and edge cases — em
 - **Clean modular structure** — backend, frontend, and knowledge layer are fully decoupled.
 
 ### 🚀 Opportunities
-- Migrate to **Pydantic V2** lifecycle handlers, retiring deprecated `Field` kwargs.
 - Upgrade the RAG matcher from keyword-overlap to **embedding-based semantic search** for better recall.
-- Add **conversation memory** so follow-up questions retain context.
-- Introduce **question classification** to route queries to specialized prompt templates per domain.
-- Add a lightweight **admin dashboard** to review Good/Average/Poor ratings and refine the FAQ dataset over time.
+- Persist conversation memory beyond the current Streamlit browser session.
+- Persist Good/Average/Poor feedback in a small database so the admin dashboard survives backend restarts.
+- Expand the question classifier with confidence scores and more UDSM-specific service domains.
+- Add export tools for feedback review so the FAQ dataset can be refined over time.
 
 ---
 
@@ -206,8 +206,10 @@ This project proves that a genuinely useful, privacy-respecting AI assistant doe
 It stands as a strong foundation: the groundwork (clean API, tested backend, working RAG, functional UI) is complete, and future iterations can focus purely on *depth* — richer knowledge, smarter retrieval, and a more polished student-facing experience.
 
 ### Next Steps
-- [ ] Add persistent conversational context
+- [x] Add session-based conversational context
+- [x] Add Good/Average/Poor feedback capture
 - [ ] Expand FAQ coverage to more campus services
+- [ ] Add persistent storage for conversations and feedback
 - [ ] Apply richer, mobile-friendly Streamlit styling
 - [ ] Layer in audit logging for production-grade monitoring
 
