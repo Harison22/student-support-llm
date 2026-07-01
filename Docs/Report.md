@@ -14,14 +14,14 @@ This report documents the design, architecture, and implementation of a locally-
 
 The **University Student Support Assistant** is a full-stack application that pairs a locally-run large language model with a fast, well-structured API and an intuitive chat interface. Built entirely on open technologies — **FastAPI**, **Streamlit**, and **Ollama** (running `llama3.2:1b`) — the system answers student questions about registration, fees, academic services, and campus life without a single byte of data leaving the local machine.
 
-Beyond the core chatbot, the project layers in a **lightweight RAG (Retrieval-Augmented Generation) system** built on real UDSM FAQ content spanning eight service domains, a full **pytest test suite (12/12 passing)**, structured logging, and a built-in **response quality evaluator** (Good / Average / Poor) — turning a class assignment into a genuinely production-minded prototype.
+Beyond the core chatbot, the project layers in a **lightweight RAG (Retrieval-Augmented Generation) system** built on real UDSM FAQ content spanning eight service domains, a full **pytest test suite (12/12 passing)**, structured logging, turning a class assignment into a genuinely production-minded prototype.
 
 | At a Glance | |
 |---|---|
 | 🧠 Model | Ollama — `llama3.2:1b` (local inference) |
 | ⚙️ Backend | FastAPI + Pydantic validation |
 | 🖥️ Frontend | Streamlit chat interface |
-| 📚 Knowledge Layer | Keyword-overlap RAG over UDSM FAQ data (8 domains, TZS pricing) |
+| 📚 Knowledge Layer | Keyword-overlap RAG over UDSM FAQ data |
 | ✅ Testing | 12/12 pytest cases passing |
 | 🔒 Privacy | 100% local — no external API calls |
 
