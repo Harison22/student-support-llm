@@ -7,6 +7,7 @@ from config import Config
 
 logger = logging.getLogger(__name__)
 
+
 class LLMClient:
     """
     Client for communicating with Member 1A's Ollama LLM
