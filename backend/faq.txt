@@ -1,0 +1,23 @@
+[SECTION: REGISTRATION]
+Course registration must be completed online through the Student Information System (SIS) within the first two weeks of the academic semester. Late registration attracts a rigid financial penalty fee and requires manual approval from the Head of Department. Students are reminded that they cannot attend classes or sit for tests if their registration status is incomplete.
+
+[SECTION: EXAMINATIONS]
+To be eligible to sit for university examinations, a student must maintain a minimum lecture and practical session attendance record of 75%. Candidates must bring a valid student identification card and their official examination clearance card to the exam hall. Bringing unauthorized materials, programmable calculators, or active smart devices into the examination room constitutes a critical breach of rules and results in automatic suspension.
+
+[SECTION: LIBRARY]
+The university library provides comprehensive access to physical textbooks, electronic journals, and quiet study spaces. Undergraduate students can borrow up to three physical books simultaneously for a maximum duration of two weeks using their student ID card. Late returns attract a daily fine, and outstanding balances will block a student's semester registration.
+
+[SECTION: ICT SUPPORT]
+The campus ICT Helpdesk assists students with university email account creation, password resets, Wi-Fi connectivity configuration, and troubleshooting access to the learning management system (LMS). For online systems support, students can visit the physical helpdesk office or submit a technical assistance ticket through the student portal.
+
+[SECTION: HOSTEL]
+Hostel applications are handled online by the Student Accommodation Bureau at the start of each academic year. Due to limited accommodation capacity on campus, priority allocation is strictly given to first-year undergraduate students, international students, and students with verified special medical or physical needs. All other students are advised to seek accredited off-campus lodging.
+
+[SECTION: FEES]
+All tuition fees, hostel fees, and direct university costs must be paid securely through the government electronic payment gateway (GePG) using a unique control number generated via the student portal. At least 50% of the total semester fee balance must be cleared before a student is granted access to the online course registration module.
+
+[SECTION: ACADEMIC CALENDAR]
+The university academic calendar consists of two semesters, each lasting 15 weeks of teaching followed by 2 weeks of university examinations. Key milestones, including the release of examination results, mid-semester breaks, holiday closures, and graduation dates, are officially published by the Directorate of Undergraduate Studies before the session begins.
+
+[SECTION: STUDENT CONDUCT]
+All registered students are strictly bound by the University Bylaws and Rules of Student Conduct. Acts of academic dishonesty (such as plagiarism or cheating), property destruction, physical fighting, or intimidation will be referred immediately to the Student Disciplinary Committee. Penalties range from formal warnings and academic suspension to permanent expulsion from the institution.
