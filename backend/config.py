@@ -13,7 +13,12 @@ class Config:
     
     # Ollama settings (where Member 1A's model runs)
     OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", 30))
+    OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", 90))
+    OLLAMA_MAX_TOKENS = int(os.getenv("OLLAMA_MAX_TOKENS", 180))
+    
+    # Local UDSM knowledge source
+    PROSPECTUS_PATH = os.getenv("PROSPECTUS_PATH", "Docs/UNDERGRADUATE_PROSPECTUS_2025-2026.pdf")
+    PROSPECTUS_INDEX_PATH = os.getenv("PROSPECTUS_INDEX_PATH", "Docs/udsm_prospectus_index.txt")
     
     # API settings
     API_HOST = os.getenv("API_HOST", "0.0.0.0")
