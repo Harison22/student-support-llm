@@ -1,7 +1,7 @@
 # backend/llm_client.py
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -15,16 +15,22 @@ except ImportError:
 logger = logging.getLogger("student_support_llm_client")
 
 
-
 class LLMClient:
-    """Client for communicating with the Ollama-backed student support assistant."""
+    """
+    Client for communicating with the Ollama-backed student support assistant.
+    Handles question sanitization, classification, prompt building, and
+    response generation using the local LLM model.
+    """
 
     def __init__(self) -> None:
         self.model = Config.MODEL_NAME
         self.base_url = Config.OLLAMA_HOST
         self.timeout = Config.OLLAMA_TIMEOUT
         self.max_tokens = Config.OLLAMA_MAX_TOKENS
-        self.prospectus = ProspectusRetriever(Config.PROSPECTUS_PATH, Config.PROSPECTUS_INDEX_PATH)
+        self.prospectus = ProspectusRetriever(
+            Config.PROSPECTUS_PATH,
+            Config.PROSPECTUS_INDEX_PATH
+        )
         self.is_available = False
         self._check_availability()
 
@@ -54,11 +60,24 @@ class LLMClient:
     def classify_question(self, question: str) -> str:
         lowered = question.lower()
         service_keywords = {
-            "enrollment": ["register", "registration", "course", "enroll", "schedule", "semester", "class"],
-            "financial_aid": ["financial", "aid", "scholarship", "fee", "tuition", "payment"],
-            "housing": ["housing", "dorm", "residence", "accommodation", "room"],
-            "academic_support": ["study", "tutor", "exam", "grade", "academic", "library", "learning"],
-            "technical_support": ["portal", "login", "password", "tech", "system", "wifi", "email"],
+            "enrollment": [
+                "register", "registration", "course", "enroll",
+                "schedule", "semester", "class"
+            ],
+            "financial_aid": [
+                "financial", "aid", "scholarship", "fee", "tuition", "payment"
+            ],
+            "housing": [
+                "housing", "dorm", "residence", "accommodation", "room"
+            ],
+            "academic_support": [
+                "study", "tutor", "exam", "grade", "academic",
+                "library", "learning"
+            ],
+            "technical_support": [
+                "portal", "login", "password", "tech", "system", "wifi",
+                "email"
+            ],
         }
 
         for service, keywords in service_keywords.items():
@@ -70,41 +89,58 @@ class LLMClient:
         self,
         question: str,
         service: str,
-        conversation_history: list[str] | None = None,
-        prospectus_matches: list[ProspectusMatch] | None = None,
+        conversation_history: Optional[List[str]] = None,
+        prospectus_matches: Optional[List[ProspectusMatch]] = None,
     ) -> str:
+        enrollment_template = (
+            "You are a friendly university enrollment advisor. "
+            "Answer the student's question about registration, courses, "
+            "or academic planning. Keep the response under 120 words and "
+            "finish with a complete sentence."
+        )
+
+        financial_aid_template = (
+            "You are a supportive financial aid assistant. "
+            "Help the student understand scholarships, tuition, fees, "
+            "or payment options. Keep the response under 120 words and "
+            "finish with a complete sentence."
+        )
+
+        housing_template = (
+            "You are a helpful housing advisor. "
+            "Respond to questions about dorms, residence life, "
+            "accommodation, or campus housing. Keep the response under "
+            "120 words and finish with a complete sentence."
+        )
+
+        academic_support_template = (
+            "You are an academic support specialist. "
+            "Answer questions about studying, tutoring, exams, grades, "
+            "or library services. Keep the response under 120 words and "
+            "finish with a complete sentence."
+        )
+
+        technical_support_template = (
+            "You are a campus tech support guide. "
+            "Help the student with student portals, login issues, "
+            "passwords, email, or general tech access. Keep the response "
+            "under 120 words and finish with a complete sentence."
+        )
+
         templates = {
-            "enrollment": (
-                "You are a friendly university enrollment advisor. "
-                "Answer the student's question about registration, courses, or academic planning. "
-                "Keep the response under 120 words and finish with a complete sentence."
-            ),
-            "financial_aid": (
-                "You are a supportive financial aid assistant. "
-                "Help the student understand scholarships, tuition, fees, or payment options. "
-                "Keep the response under 120 words and finish with a complete sentence."
-            ),
-            "housing": (
-                "You are a helpful housing advisor. "
-                "Respond to questions about dorms, residence life, accommodation, or campus housing. "
-                "Keep the response under 120 words and finish with a complete sentence."
-            ),
-            "academic_support": (
-                "You are an academic support specialist. "
-                "Answer questions about studying, tutoring, exams, grades, or library services. "
-                "Keep the response under 120 words and finish with a complete sentence."
-            ),
-            "technical_support": (
-                "You are a campus tech support guide. "
-                "Help the student with student portals, login issues, passwords, email, or general tech access. "
-                "Keep the response under 120 words and finish with a complete sentence."
-            ),
+            "enrollment": enrollment_template,
+            "financial_aid": financial_aid_template,
+            "housing": housing_template,
+            "academic_support": academic_support_template,
+            "technical_support": technical_support_template,
         }
 
         prompt = templates.get(
             service,
-            "Answer the student's question clearly. Keep the response under 120 words and finish with a complete sentence.",
+            "Answer the student's question clearly. Keep the response under "
+            "120 words and finish with a complete sentence."
         )
+
         if conversation_history:
             recent_context = "\n".join(conversation_history[-4:])
             prompt = f"{prompt}\n\nConversation context:\n{recent_context}"
@@ -115,14 +151,19 @@ class LLMClient:
                 for match in prospectus_matches
             )
             prompt = (
-                f"{prompt}\n\nUse the UDSM prospectus context below as the source of truth. "
-                "If the context does not contain the answer, say that the prospectus excerpt does not specify it "
-                "and suggest checking the relevant UDSM office.\n\n"
+                f"{prompt}\n\nUse the UDSM prospectus context below as the "
+                "source of truth. If the context does not contain the answer, "
+                "say that the prospectus excerpt does not specify it and "
+                "suggest checking the relevant UDSM office.\n\n"
                 f"{context}"
             )
         return prompt
 
-    def generate_response(self, question: str, conversation_history: list[str] | None = None) -> Dict[str, Any]:
+    def generate_response(
+        self,
+        question: str,
+        conversation_history: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         cleaned_question = self.sanitize_question(question)
         if not cleaned_question:
             return {
@@ -143,7 +184,12 @@ class LLMClient:
 
         service = self.classify_question(cleaned_question)
         prospectus_matches = self.prospectus.search(cleaned_question)
-        prompt = self.build_prompt(cleaned_question, service, conversation_history, prospectus_matches)
+        prompt = self.build_prompt(
+            cleaned_question,
+            service,
+            conversation_history,
+            prospectus_matches
+        )
 
         try:
             payload = {
@@ -160,7 +206,11 @@ class LLMClient:
                 },
             }
 
-            response = requests.post(f"{self.base_url}/api/generate", json=payload, timeout=self.timeout)
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json=payload,
+                timeout=self.timeout
+            )
             response.raise_for_status()
             result = response.json()
 
@@ -172,8 +222,13 @@ class LLMClient:
                 "service": service,
                 "metadata": {
                     "service": service,
-                    "source": "UDSM Undergraduate Prospectus 2025/2026" if prospectus_matches else "LLM",
-                    "prospectus_pages": [match.page for match in prospectus_matches],
+                    "source": (
+                        "UDSM Undergraduate Prospectus 2025/2026"
+                        if prospectus_matches else "LLM"
+                    ),
+                    "prospectus_pages": [
+                        match.page for match in prospectus_matches
+                    ],
                     "total_duration": result.get("total_duration", 0),
                     "eval_count": result.get("eval_count", 0),
                 },
@@ -182,7 +237,10 @@ class LLMClient:
         except requests.exceptions.Timeout:
             logger.error("Request timed out after %s seconds", self.timeout)
             return {
-                "error": f"Model is taking too long to respond after {self.timeout} seconds",
+                "error": (
+                    f"Model is taking too long to respond "
+                    f"after {self.timeout} seconds"
+                ),
                 "status": "error",
                 "timestamp": datetime.now().isoformat(),
             }
@@ -216,12 +274,16 @@ class LLMClient:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             if response.status_code == 200:
                 models = response.json().get("models", [])
-                model_found = any(model.get("name") == self.model for model in models)
+                model_found = any(
+                    model.get("name") == self.model for model in models
+                )
 
                 return {
                     "status": "available" if model_found else "not_found",
                     "model": self.model,
-                    "message": "Model is ready" if model_found else "Model not found",
+                    "message": (
+                        "Model is ready" if model_found else "Model not found"
+                    ),
                 }
         except Exception:
             return {
