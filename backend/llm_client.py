@@ -1,6 +1,5 @@
 # backend/llm_client.py
 import logging
-from backend.config import Config
 from datetime import datetime
 from typing import Any, Dict
 

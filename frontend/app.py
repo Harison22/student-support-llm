@@ -3,22 +3,55 @@ import requests
 
 BACKEND_URL = "http://localhost:8000/ask"
 
-st.set_page_config(page_title="Student Support Assistant")
+st.set_page_config(page_title="Student Support Assistant", layout="centered")
 
+# --- CUSTOM CSS FOR CHATGPT-LIKE ALIGNMENT ---
+st.markdown("""
+    <style>
+        /* Target the user message container and pull it to the right */
+        div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
+            flex-direction: row-reverse !important;
+            text-align: right !important;
+        }
+        
+        /* Keep the inner content bubble clean when flipped */
+        div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) .stMarkdown {
+            display: inline-block;
+            text-align: left;
+            background-color: #f0f2f6;
+            padding: 10px 15px;
+            border-radius: 15px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- CLEAN HEADER SECTION (NO LOGO) ---
 st.title("🎓 Student Support Assistant")
+st.caption("Ask about registration, financial aid, housing, and academic support.")
 
-question = st.text_input(
-    "Ask a question about university services:"
-)
+# 1. Initialize chat history in session state
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hello! How can I help you with university services today?"}
+    ]
 
-if st.button("Ask"):
+# 2. Display existing chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    if not question.strip():
-        st.warning("Please enter a question.")
-    else:
-        try:
-            with st.spinner("Generating response..."):
+# 3. Accept user input
+if question := st.chat_input("Ask a question about university services..."):
+    
+    with st.chat_message("user"):
+        st.markdown(question)
+        
+    st.session_state.messages.append({"role": "user", "content": question})
 
+    # 4. Fetch response from backend
+    try:
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
                 response = requests.post(
                     BACKEND_URL,
                     json={"question": question},
@@ -26,97 +59,15 @@ if st.button("Ask"):
                 )
 
                 if response.status_code == 200:
-                    answer = response.json()["answer"]
-                    st.success(answer)
+                    answer = response.json()["response"]
+                    st.markdown(answer)
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
                 else:
-                    st.error(
-                        f"Backend error: {response.text}"
-                    )
-
-        except requests.exceptions.ConnectionError:
-            st.error("Cannot connect to backend.")
-
-        except Exception as e:
-            st.error(f"Error: {e}")
-import requests
-import streamlit as st
-
-BACKEND_BASE_URL = "http://localhost:8000"
-ASK_URL = f"{BACKEND_BASE_URL}/ask"
-
-st.set_page_config(page_title="Student Support Assistant", page_icon="🎓", layout="wide")
-
-st.title("🎓 Student Support Assistant")
-st.caption("Ask about registration, financial aid, housing, and academic support.")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "saved_answers" not in st.session_state:
-    st.session_state.saved_answers = []
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-prompt = st.chat_input("Ask a question about university services")
-
-with st.sidebar:
-    st.subheader("Quick actions")
-    if st.button("Save latest answer"):
-        if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
-            st.session_state.saved_answers.append(st.session_state.messages[-1]["content"])
-            st.success("Saved the latest answer.")
-        else:
-            st.info("Ask a question first to save an answer.")
-
-    st.subheader("Saved answers")
-    if st.session_state.saved_answers:
-        for entry in st.session_state.saved_answers[-5:]:
-            st.write(f"- {entry[:90]}{'...' if len(entry) > 90 else ''}")
-    else:
-        st.caption("No saved answers yet.")
-
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.write(prompt)
-
-    recent_context = [
-        message["content"]
-        for message in st.session_state.messages[:-1]
-        if message["role"] == "user"
-    ][-4:]
-
-    try:
-        with st.spinner("Generating response..."):
-            response = requests.post(
-                ASK_URL,
-                json={
-                    "question": prompt,
-                    "conversation_context": recent_context,
-                },
-                timeout=60,
-            )
-
-        if response.status_code == 200:
-            payload = response.json()
-            answer = payload["response"]
-            st.session_state.messages.append({"role": "assistant", "content": answer})
-            with st.chat_message("assistant"):
-                st.write(answer)
-        else:
-            error_message = response.text
-            st.session_state.messages.append({"role": "assistant", "content": f"Backend error: {error_message}"})
-            with st.chat_message("assistant"):
-                st.error(error_message)
+                    error_msg = f"Backend error: {response.text}"
+                    st.error(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
     except requests.exceptions.ConnectionError:
-        error_message = "Cannot connect to the backend. Please ensure the API is running."
-        st.session_state.messages.append({"role": "assistant", "content": error_message})
-        with st.chat_message("assistant"):
-            st.error(error_message)
-
-    except Exception as exc:
-        st.session_state.messages.append({"role": "assistant", "content": f"Error: {exc}"})
-        with st.chat_message("assistant"):
-            st.error(f"Error: {exc}")
+        st.error("Cannot connect to the backend server. Please make sure it is running.")
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")

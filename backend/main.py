@@ -3,19 +3,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
 import json
-
-from backend.config import Config
-from backend.llm_client import LLMClient
-
 import os
 from typing import Any, Literal
-
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Annotated
 
 try:
     from .config import Config
@@ -23,6 +12,13 @@ try:
 except ImportError:
     from config import Config
     from llm_client import LLMClient
+
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import Annotated
 
 os.makedirs(os.path.dirname(Config.LOG_FILE) or ".", exist_ok=True)
 
@@ -35,6 +31,36 @@ logger = logging.getLogger("student_support_backend")
 
 llm_client = LLMClient()
 feedback_store: list[dict[str, Any]] = []
+
+
+# --- SIMPLE KEYWORD-MATCHING RAG RETRIEVAL ---
+def retrieve_faq_context(user_query: str, filepath: str = "faq.txt") -> str:
+    """Scans the faq.txt file for keywords matching the user's question to pull relevant context."""
+    if not os.path.exists(filepath):
+        logger.warning(f"RAG missing source: Context file '{filepath}' not found.")
+        return ""
+
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            # Splits text by paragraphs/sections (separated by double newlines)
+            chunks = [chunk.strip() for chunk in f.read().split("\n\n") if chunk.strip()]
+        
+        # Tokenize query to look up basic keywords (ignoring small common words)
+        query_words = [w.lower() for w in user_query.split() if len(w) > 2]
+        if not query_words:
+            return ""
+
+        # Score and collect blocks containing matching keywords
+        matched_chunks = []
+        for chunk in chunks:
+            if any(word in chunk.lower() for word in query_words):
+                matched_chunks.append(chunk)
+        
+        # Take the top matching context blocks
+        return "\n\n".join(matched_chunks[:3])
+    except Exception as e:
+        logger.error(f"Failed to read context file for RAG: {str(e)}")
+        return ""
 
 
 @asynccontextmanager
@@ -121,6 +147,7 @@ class FeedbackResponse(BaseModel):
 async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
     details = exc.errors()
     message = "Invalid request payload"
+    
     if details and details[0].get("loc") and details[0]["loc"][-1] == "question":
         message = details[0].get("msg", "Question cannot be empty")
 
@@ -218,8 +245,25 @@ async def ask_question(request: QuestionRequest) -> AskResponse:
             logger.warning("Empty question received")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty")
 
+        # 1. Fetch relevant background details from faq.txt
+        context = retrieve_faq_context(question_text)
+        
+        # 2. Augment the user prompt with the context if matches exist
+        if context:
+            logger.info("RAG context successfully attached to request.")
+            final_prompt = (
+                f"You are a helpful student support assistant. Use the following university context records to answer "
+                f"the question accurately. If the text doesn't contain the answer, rely on your default knowledge base but prioritize this info.\n\n"
+                f"--- UNIVERSITY CONTEXT RECORDS ---\n{context}\n-----------------------------\n\n"
+                f"Student Question: {question_text}"
+            )
+        else:
+            logger.info("No matching RAG context found. Defaulting to general LLM generation.")
+            final_prompt = question_text
+
+        # 3. Request inference from local LLM client
         llm_response = llm_client.generate_response(
-            question_text,
+            final_prompt,
             conversation_history=request.conversation_context or [],
         )
 
