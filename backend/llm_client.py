@@ -59,26 +59,37 @@ class LLMClient:
 
     def classify_question(self, question: str) -> str:
         lowered = question.lower()
+        # ========== ADDITION 1: UPDATED KEYWORDS (more UDSM-specific) ==========
         service_keywords = {
             "enrollment": [
                 "register", "registration", "course", "enroll",
-                "schedule", "semester", "class"
+                "schedule", "semester", "class", "programme",
+                "admission", "application", "academic calendar",
+                "department", "faculty", "student portal"
             ],
             "financial_aid": [
-                "financial", "aid", "scholarship", "fee", "tuition", "payment"
+                "financial", "aid", "scholarship", "fee", "tuition",
+                "payment", "cost", "funding", "bursary", "loan",
+                "sponsorship", "budget", "receipt"
             ],
             "housing": [
-                "housing", "dorm", "residence", "accommodation", "room"
+                "housing", "dorm", "residence", "accommodation", "room",
+                "hostel", "hostels", "living", "campus housing",
+                "dormitory", "rent", "utilities"
             ],
             "academic_support": [
                 "study", "tutor", "exam", "grade", "academic",
-                "library", "learning"
+                "library", "learning", "assignment", "project",
+                "research", "supervisor", "lecture", "tutorial",
+                "thesis", "dissertation"
             ],
             "technical_support": [
-                "portal", "login", "password", "tech", "system", "wifi",
-                "email"
+                "portal", "login", "password", "tech", "system",
+                "wifi", "email", "computer", "internet", "network",
+                "account", "access", "password reset"
             ],
         }
+        # ========== END OF ADDITION 1 ==========
 
         for service, keywords in service_keywords.items():
             if any(keyword in lowered for keyword in keywords):
@@ -92,40 +103,57 @@ class LLMClient:
         conversation_history: Optional[List[str]] = None,
         prospectus_matches: Optional[List[ProspectusMatch]] = None,
     ) -> str:
+        # ========== ADDITION 2: UDSM-SPECIFIC TEMPLATES ==========
         enrollment_template = (
-            "You are a friendly university enrollment advisor. "
+            "You are a friendly UDSM enrollment advisor. "
+            "ONLY answer about the University of Dar es Salaam. "
             "Answer the student's question about registration, courses, "
-            "or academic planning. Keep the response under 120 words and "
-            "finish with a complete sentence."
+            "or academic planning at UDSM. If the prospectus doesn't have "
+            "the answer, say: 'The UDSM prospectus does not specify this. "
+            "Please contact the UDSM Academic Office for assistance.' "
+            "Keep the response under 120 words."
         )
 
         financial_aid_template = (
-            "You are a supportive financial aid assistant. "
+            "You are a supportive UDSM financial aid assistant. "
+            "ONLY answer about the University of Dar es Salaam. "
             "Help the student understand scholarships, tuition, fees, "
-            "or payment options. Keep the response under 120 words and "
-            "finish with a complete sentence."
+            "or payment options at UDSM. If the prospectus doesn't have "
+            "the answer, say: 'The UDSM prospectus does not specify this. "
+            "Please contact the UDSM Finance Office for assistance.' "
+            "Keep the response under 120 words."
         )
 
         housing_template = (
-            "You are a helpful housing advisor. "
-            "Respond to questions about dorms, residence life, "
-            "accommodation, or campus housing. Keep the response under "
-            "120 words and finish with a complete sentence."
+            "You are a helpful UDSM housing advisor. "
+            "ONLY answer about the University of Dar es Salaam. "
+            "Answer the student's question about hostels, dormitories, "
+            "or accommodation at UDSM. If the prospectus doesn't have "
+            "the answer, say: 'The UDSM prospectus does not specify this. "
+            "Please contact the UDSM Housing Office for assistance.' "
+            "Keep the response under 120 words."
         )
 
         academic_support_template = (
-            "You are an academic support specialist. "
+            "You are a UDSM academic support specialist. "
+            "ONLY answer about the University of Dar es Salaam. "
             "Answer questions about studying, tutoring, exams, grades, "
-            "or library services. Keep the response under 120 words and "
-            "finish with a complete sentence."
+            "or library services at UDSM. If the prospectus doesn't have "
+            "the answer, say: 'The UDSM prospectus does not specify this. "
+            "Please contact the relevant UDSM department for assistance.' "
+            "Keep the response under 120 words."
         )
 
         technical_support_template = (
-            "You are a campus tech support guide. "
+            "You are a UDSM tech support guide. "
+            "ONLY answer about the University of Dar es Salaam. "
             "Help the student with student portals, login issues, "
-            "passwords, email, or general tech access. Keep the response "
-            "under 120 words and finish with a complete sentence."
+            "passwords, or general tech access at UDSM. If the prospectus "
+            "doesn't have the answer, say: 'The UDSM prospectus does not "
+            "specify this. Please contact the UDSM IT Support Office.' "
+            "Keep the response under 120 words."
         )
+        # ========== END OF ADDITION 2 ==========
 
         templates = {
             "enrollment": enrollment_template,
@@ -190,6 +218,16 @@ class LLMClient:
             conversation_history,
             prospectus_matches
         )
+
+        # ========== ADDITION 3: FORCE UDSM-SPECIFIC RESPONSE ==========
+        udsm_force = (
+            "\n\nIMPORTANT: You are answering for the University of Dar es Salaam (UDSM) ONLY. "
+            "If the question is NOT about UDSM, say: "
+            "'I only provide information about the University of Dar es Salaam.' "
+            "ONLY use UDSM-specific information. DO NOT give general answers about other universities."
+        )
+        prompt = prompt + udsm_force
+        # ========== END OF ADDITION 3 ==========
 
         try:
             payload = {
