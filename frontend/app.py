@@ -1,54 +1,90 @@
 import streamlit as st
 import requests
+from datetime import datetime
 
 BACKEND_URL = "http://localhost:8000/ask"
 
-st.set_page_config(page_title="Student Support Assistant", layout="centered")
+st.set_page_config(
+    page_title="UDSM Student Assistant",
+    page_icon="🎓",
+    layout="wide"
+)
 
-# --- CUSTOM CSS FOR CHATGPT-LIKE ALIGNMENT ---
-st.markdown("""
-    <style>
-        /* Target the user message container and pull it to the right */
-        div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-            flex-direction: row-reverse !important;
-            text-align: right !important;
-        }
-        
-        /* Keep the inner content bubble clean when flipped */
-        div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) .stMarkdown {
-            display: inline-block;
-            text-align: left;
-            background-color: #f0f2f6;
-            padding: 10px 15px;
-            border-radius: 15px;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- CLEAN HEADER SECTION (NO LOGO) ---
-st.title("🎓 Student Support Assistant")
-st.caption("Ask about registration, financial aid, housing, and academic support.")
-
-# 1. Initialize chat history in session state
+# ========== SESSION STATE ==========
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "assistant", "content": "Hello! How can I help you with university services today?"}
     ]
+if "conversation_count" not in st.session_state:
+    st.session_state.conversation_count = 0
 
-# 2. Display existing chat history
+# ========== SIDEBAR ==========
+with st.sidebar:
+    st.title("📚 Student Support")
+    
+    # --- FAQ SECTION ---
+    st.subheader("❓ Frequently Asked Questions")
+    with st.expander("How do I register for courses?"):
+        st.write("Course registration at UDSM is done online through the student portal. The registration period is typically announced at the start of each semester. Please check the academic calendar for specific dates.")
+    with st.expander("Where are the hostels?"):
+        st.write("UDSM hostels are located on the main campus in Dar es Salaam. Accommodation is allocated on a first-come, first-served basis, with priority given to first-year students and international students.")
+    with st.expander("What are the library hours?"):
+        st.write("The UDSM library is open from 8:00 AM to 10:00 PM on weekdays, and 9:00 AM to 5:00 PM on weekends. Hours may change during holidays.")
+    with st.expander("How do I pay my fees?"):
+        st.write("Fees can be paid through the UDSM student portal, via bank transfer, or at designated banks. Payment deadlines are published in the academic calendar.")
+    with st.expander("When is the academic calendar?"):
+        st.write("The academic calendar is published on the UDSM website. It includes important dates for registration, exams, and holidays.")
+    st.divider()
+
+    # --- Q&A HISTORY SECTION ---
+    st.subheader("📝 Your Conversation History")
+    
+    if st.button("🗑️ Clear History", use_container_width=True):
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello! How can I help you with university services today?"}
+        ]
+        st.session_state.conversation_count = 0
+        st.rerun()
+    
+    # Display Q&A history correctly
+    if len(st.session_state.messages) > 1:
+        qa_pairs = []
+        for i in range(len(st.session_state.messages)):
+            if st.session_state.messages[i]["role"] == "user":
+                question = st.session_state.messages[i]["content"]
+                answer = ""
+                if i + 1 < len(st.session_state.messages) and st.session_state.messages[i+1]["role"] == "assistant":
+                    answer = st.session_state.messages[i+1]["content"]
+                qa_pairs.append({"q": question, "a": answer})
+        
+        for idx, pair in enumerate(qa_pairs, 1):
+            with st.expander(f"Q{idx}: {pair['q'][:50]}..."):
+                st.markdown(f"**Question:** {pair['q']}")
+                st.markdown(f"**Answer:** {pair['a']}")
+    else:
+        st.info("No conversations yet. Ask a question to get started!")
+
+# ========== MAIN CHAT AREA ==========
+st.title("🎓 Student Support Assistant")
+st.caption("Ask about registration, financial aid, housing, and academic support.")
+
+# Display chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.write(message["content"])
 
-# 3. Accept user input
-if question := st.chat_input("Ask a question about university services..."):
+# Chat input
+question = st.chat_input("Ask a question about university services...")
+
+if question:
+    # Add user message
+    st.session_state.messages.append({"role": "user", "content": question})
+    st.session_state.conversation_count += 1
     
     with st.chat_message("user"):
-        st.markdown(question)
-        
-    st.session_state.messages.append({"role": "user", "content": question})
-
-    # 4. Fetch response from backend
+        st.write(question)
+    
+    # Fetch response from backend
     try:
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
@@ -57,17 +93,23 @@ if question := st.chat_input("Ask a question about university services..."):
                     json={"question": question},
                     timeout=60
                 )
-
+                
                 if response.status_code == 200:
-                    answer = response.json()["response"]
-                    st.markdown(answer)
+                    answer = response.json().get("response", "No response received.")
+                    st.write(answer)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                 else:
-                    error_msg = f"Backend error: {response.text}"
+                    error_msg = f"Backend error: {response.status_code}"
                     st.error(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
-
+    
     except requests.exceptions.ConnectionError:
-        st.error("Cannot connect to the backend server. Please make sure it is running.")
+        error_msg = "Cannot connect to the backend server. Please make sure it is running."
+        st.error(error_msg)
+        st.session_state.messages.append({"role": "assistant", "content": error_msg})
     except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
+        error_msg = f"An unexpected error occurred: {e}"
+        st.error(error_msg)
+        st.session_state.messages.append({"role": "assistant", "content": error_msg})
+    
+    st.rerun()
