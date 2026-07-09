@@ -7,8 +7,19 @@
 # Technical Report: University Student Support Assistant
 *A Locally-Hosted, Privacy-First AI Support System for Student Services*
 
-**Prepared by:** Group Member — Doreen
-**Programme:** BSc. Computer Engineering and Information Technology
+**Prepared by:** Group 
+## Student Information
+
+| S/N | Name         | Registration Number |
+|-----|--------------|---------------------|
+| 1   | HARISON NAFTAL MLAWA     | 2023-04-08077      |
+| 2   | SIFA OBEDI KAMENDU  | 2023-04-03883       |
+| 3  | WAKURU BISENDO MASENZA     | 2023-04-06785      |
+| 4   | SABATO ROBERT NJIGE  | 2023-04-10669       |
+| 5  | DOREEN FAUSTINE MSACKI     | 2023-04-08679      |
+| 6   | SABATO ROBERT NJIGE  | 2023-04-10669       |
+
+**Programme:** BSc. CEIT & TE
 **Course:** IS 365 — Information Systems
 **Date:** July 2026
 
