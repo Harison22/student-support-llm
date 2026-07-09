@@ -130,63 +130,78 @@ This section presents the implementation evidence in the order the pipeline was 
 
 A dedicated Python virtual environment was created and activated inside the project folder using venv, isolating the project's dependencies from the system Python installation.
 
-![Virtual environment created and activated](screenshots/Activated virtual environment.png)
+![Virtual environment created and activated](screenshots/t1_venv.png)
 *Figure 5.1: Virtual environment created (`python -m venv venv`) and activated (`source venv/Scripts/activate`).*
 
 With the virtual environment active, the required backend libraries — FastAPI, Uvicorn, Requests, python-dotenv, Pydantic, HTTPX, and the Ollama Python client — were installed via pip.
 
-![Installing backend dependencies](screenshots/T1.2A.png)
+![Installing backend dependencies](screenshots/t1_pip_install.png)
 *Figure 5.2: Installation of FastAPI, Uvicorn, Requests, python-dotenv, Pydantic, HTTPX, and Ollama.*
 
-![pip list confirming installed packages](screenshots/T1.2b.png)
+![pip list confirming installed packages](screenshots/t1_pip_list.png)
 *Figure 5.3: Successful installation confirmed via `pip list`, showing all project dependencies and versions.*
 
 ### Task 2 — Installation and Running of the Local LLM
 
 Ollama was used to pull and serve the chosen lightweight model, `llama3.2:1b`, entirely on the local machine.
 
-![Model pulled via Ollama](screenshots/T2.1.png)
+![Model pulled via Ollama](screenshots/t2_model_pulled.png)
 *Figure 5.4: Model pulled successfully via `ollama pull llama3.2:1b`, confirmed with `ollama list` and `ollama --version`.*
 
 The model was then started and kept running locally so that the backend could reach it through Ollama's local API.
 
-![Model running locally](screenshots/T2.2.png)
+![Model running locally](screenshots/t2_model_running.png)
 *Figure 5.5: The llama3.2:1b model running locally via Ollama, ready to serve requests.*
 
 A test request was sent through to confirm the model returns a valid, successful response before wiring it into the FastAPI backend.
 
-![Successful test response from the model](screenshots/T2.3.png)
+![Successful test response from the model](screenshots/t2_api_response.png)
 *Figure 5.6: A successful response returned by the local model, confirming the LLM layer is reachable and functional.*
 
 ### Task 3 — The Developed FastAPI Backend
 
 The FastAPI backend was implemented with routes for root metadata, health checks, question answering, and feedback, then started with Uvicorn.
 
-![FastAPI backend running](screenshots/T3.1.png)
+![FastAPI backend running](screenshots/t3_fastapi_running.png)
 *Figure 5.7: The FastAPI backend running via Uvicorn on the local development server.*
 
 FastAPI's automatic interactive documentation (Swagger UI) was used to inspect and test each endpoint.
 
-![Swagger UI](screenshots/T3.2.png)
+![Swagger UI](screenshots/t3_swagger_docs.png)
 *Figure 5.8: Swagger UI (`/docs`) listing the available API endpoints.*
 
 The `/health` endpoint was called to confirm both the backend and the underlying Ollama model were available.
 
-![Health check response](screenshots/T3.3.png)
+![Health check response](screenshots/t3_health_response.png)
 *Figure 5.9: A successful `/health` response, showing backend and model status.*
 
 The `/ask` endpoint was then exercised with a sample student question, confirming the full request/response cycle from API to model and back.
 
-![Ask endpoint response](screenshots/T3.3-4.png)
+![Ask endpoint response](screenshots/t3_ask_response.png)
 *Figure 5.10: A successful `/ask` response returning a grounded answer to a sample student question.*
 
 ### Task 4 — The Developed Frontend
 
 A Streamlit chat interface (`frontend/app.py`) was built on top of the API, giving students a plain-language question box and an answer area. The interface posts each question to the backend's `/ask` endpoint, displays the returned answer, shows a loading indicator while waiting for a response, and surfaces a clear error banner if the backend is unreachable.
 
+![Streamlit frontend interface](screenshots/t4_frontend.png)
+*Figure 5.11: The Streamlit chat interface used by students to ask questions.*
+
+![Question and answer interaction on the frontend](screenshots/t4_qa_interaction.png)
+*Figure 5.12: A sample question-and-answer interaction on the frontend, showing a student question and the assistant's response.*
+
 ### Task 5 — API Test Script
 
 An automated test suite was written under `tests/` using pytest and FastAPI's TestClient, covering successful requests, input sanitisation, empty-question validation, and service classification. All test cases pass (12/12), giving repeatable confidence that the API behaves correctly without needing to exercise it manually through the UI each time.
+
+![Test script](screenshots/t5_test_script.png)
+*Figure 5.13: Excerpt of the automated test script used to exercise the backend API.*
+
+![Test run output](screenshots/t5_test_output.png)
+*Figure 5.14: Test run output confirming the suite executed against the backend.*
+
+![Successful test output, all cases passing](screenshots/t5_successful_test_output.png)
+*Figure 5.15: Full test suite passing (12/12), confirming the backend behaves correctly across all covered cases.*
 
 ### Task 6 — Prompt Improvement
 
@@ -196,7 +211,13 @@ The initial prompt sent to the model was a single generic instruction:
 Answer this university question: {question}
 ```
 
+![Original prompt](screenshots/t6_original_prompt.png)
+*Figure 5.16: The original, generic prompt and the response it produced.*
+
 Tested against the question *"What's the deadline to pay my tuition fees this semester?"*, this prompt caused the model to invent a specific deadline it had no way of actually knowing — a hallucination. The prompt was rewritten to explicitly instruct the model to acknowledge uncertainty and redirect the student to the correct office rather than guess:
+
+![Improved prompt](screenshots/t6_improved_prompt.png)
+*Figure 5.17: The improved prompt and the more trustworthy response it produced.*
 
 | Before | After |
 |---|---|
