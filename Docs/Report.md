@@ -17,7 +17,7 @@
 | 3  | WAKURU BISENDO MASENZA     | 2023-04-06785      |
 | 4   | SABATO ROBERT NJIGE  | 2023-04-10669       |
 | 5  | DOREEN FAUSTINE MSACKI     | 2023-04-08679      |
-| 6   | SABATO ROBERT NJIGE  | 2023-04-10669       |
+| 6   | GLENYCE AMANI MWAKALAPUKA | 2023-04-09472       |
 
 **Programme:** BSc. CEIT & TE
 **Course:** IS 365 — Information Systems
